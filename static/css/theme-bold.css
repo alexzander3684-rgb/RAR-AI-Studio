@@ -1,0 +1,7 @@
+body {
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(255, 0, 200, 0.20), transparent 55%),
+    radial-gradient(800px 460px at 85% 25%, rgba(0, 255, 255, 0.16), transparent 58%),
+    radial-gradient(900px 520px at 40% 95%, rgba(255, 140, 0, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(10,10,18,1), rgba(6,6,12,1));
+}

@@ -1,0 +1,45 @@
+(function () {
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+  async function copyFrom(selector) {
+    const el = qs(selector);
+    if (!el) return;
+    const text = el.innerText || el.textContent || "";
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Copied!");
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      alert("Copied!");
+    }
+  }
+
+  function downloadFrom(selector, filename) {
+    const el = qs(selector);
+    if (!el) return;
+    const text = el.innerText || el.textContent || "";
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename || "rar_output.txt";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  qsa("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", () => copyFrom(btn.getAttribute("data-copy")));
+  });
+
+  qsa("[data-download]").forEach((btn) => {
+    btn.addEventListener("click", () => downloadFrom(btn.getAttribute("data-download"), "rar_marketing_pack.txt"));
+  });
+})();

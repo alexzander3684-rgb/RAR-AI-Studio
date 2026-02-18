@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ page_title }}</title>
+
+  <!-- LOCKED: Bold Gradient only -->
+  <link rel="stylesheet" href="/static/css/base.css"/>
+  <link rel="stylesheet" href="/static/css/theme-bold.css"/>
+
+  <script defer src="/static/js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <div class="brand">
+        <div class="brand__mark">RAR</div>
+        <div class="brand__text">
+          <div class="brand__name">RAR AI Studio</div>
+          <div class="brand__tag">Marketing assets in minutes</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="/">Studio</a>
+        <a class="nav__link is-active" href="/pricing">Pricing</a>
+        <a class="nav__link nav__link--pill" href="/#ads">More Services</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="pricing-hero">
+      <h1 class="hero__title">Pricing</h1>
+      <p class="hero__sub">
+        Built for small businesses that need clean marketing fast — captions, ads, landing copy, and DM scripts.
+      </p>
+    </section>
+
+    <section class="pricing-grid">
+      <div class="card card--glass">
+        <div class="card__title">Starter</div>
+        <div class="price">$49<span class="price__sub">/mo</span></div>
+        <ul class="list">
+          <li>Marketing Pack generator</li>
+          <li>Ad copy + hooks + captions</li>
+          <li>DM closing scripts (no calls)</li>
+          <li>Basic landing-page outline</li>
+        </ul>
+        <button class="btn btn--primary" type="button" onclick="alert('Payments wiring next.');">Start Starter</button>
+        <div class="tiny">Perfect for 1 business.</div>
+      </div>
+
+      <div class="card card--glass">
+        <div class="card__title">Pro</div>
+        <div class="price">$99<span class="price__sub">/mo</span></div>
+        <ul class="list">
+          <li>Everything in Starter</li>
+          <li>More variants per run</li>
+          <li>Stronger “offer angles”</li>
+          <li>Priority template upgrades</li>
+        </ul>
+        <button class="btn btn--primary" type="button" onclick="alert('Payments wiring next.');">Start Pro</button>
+        <div class="tiny">For faster content output.</div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="card__title">Founders Discount</div>
+      <div class="mini">
+        First time offer: <strong>$25 off</strong> your first month (limited). We’ll wire this into checkout next.
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>© {{ 2026 }} RAR AI Studio</div>
+      <div class="footer__links">
+        <a href="/">Studio</a>
+        <a href="/" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Top</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

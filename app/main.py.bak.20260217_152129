@@ -1,0 +1,444 @@
+from __future__ import annotations
+
+import os
+import re
+import sqlite3
+import secrets
+from datetime import datetime
+from typing import Any, Dict
+
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+# Prefer local OpenAI bridge if present
+try:
+    from app.axel_bridge import axel_generate  # type: ignore
+except Exception:
+    axel_generate = None  # type: ignore
+
+app = FastAPI(title="RAR AI Studio")
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
+
+# ----------------------------
+# THEME (locked to bold)
+# ----------------------------
+def _theme_from_request(request: Request) -> str:
+    return "bold"
+
+
+# ----------------------------
+# DB (stdlib sqlite)
+# ----------------------------
+DB_PATH = os.path.join(BASE_DIR, "data.sqlite3")
+
+
+def _db() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_db() -> None:
+    with _db() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS funnels (
+                slug TEXT PRIMARY KEY,
+                visibility TEXT NOT NULL,  -- public | unlisted
+                title TEXT NOT NULL,
+                business_name TEXT,
+                business_type TEXT,
+                offer TEXT,
+                location TEXT,
+                html TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
+
+_init_db()
+
+
+def _slug(n_bytes: int = 8) -> str:
+    # URL-safe random id
+    return secrets.token_urlsafe(n_bytes).replace("-", "").replace("_", "")
+
+
+def _stringify_output(x: Any) -> str:
+    if x is None:
+        return ""
+    if isinstance(x, str):
+        return x
+    try:
+        import json
+
+        return json.dumps(x, indent=2, ensure_ascii=False)
+    except Exception:
+        return str(x)
+
+
+def _clean_one_line(s: str) -> str:
+    s = (s or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+# ----------------------------
+# PAGES
+# ----------------------------
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    theme = _theme_from_request(request)
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "theme": theme,
+            "page_title": "RAR AI Studio",
+            "subtitle": "Fast marketing assets for small businesses — in minutes.",
+        },
+    )
+
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing(request: Request):
+    theme = _theme_from_request(request)
+    return templates.TemplateResponse(
+        "pricing.html",
+        {"request": request, "theme": theme, "page_title": "Pricing — RAR AI Studio"},
+    )
+
+
+@app.post("/set-theme")
+def set_theme(request: Request):
+    # Customers never see theme switching
+    return RedirectResponse(url="/", status_code=303)
+
+
+# ----------------------------
+# TOOL 1: Marketing Pack
+# offer is now OPTIONAL
+# ----------------------------
+@app.post("/generate", response_class=HTMLResponse)
+def generate(
+    request: Request,
+    business_name: str = Form(...),
+    business_type: str = Form(...),
+    offer: str = Form(""),
+    location: str = Form(""),
+    vibe: str = Form("confident"),
+):
+    theme = _theme_from_request(request)
+
+    business_name = _clean_one_line(business_name)
+    business_type = _clean_one_line(business_type)
+    offer = _clean_one_line(offer)
+    location = _clean_one_line(location)
+    vibe = _clean_one_line(vibe)
+
+    inputs: Dict[str, Any] = {
+        "business_name": business_name,
+        "business_type": business_type,
+        "offer": offer,
+        "location": location,
+        "deliverables": [
+            "Hooks (10)",
+            "Captions (6)",
+            "Ad Copy (3)",
+            "DM Closer Script (1)",
+            "Landing Page Outline (1)",
+        ],
+    }
+
+    if axel_generate:
+        out = axel_generate(
+            tool="marketing_pack",
+            inputs=inputs,
+            tone=vibe,
+            audience="small business",
+            brand="RAR AI Studio",
+        )
+        output_text = _stringify_output(out)
+    else:
+        # fallback: short + usable (not a wall of text)
+        offer_line = offer if offer else "your best offer"
+        loc_line = location if location else "your area"
+        output_text = (
+            f"{business_name} — quick marketing pack\n\n"
+            f"Business type: {business_type}\n"
+            f"Offer: {offer_line}\n"
+            f"Location: {loc_line}\n"
+            f"Tone: {vibe}\n\n"
+            f"HOOKS:\n"
+            f"1) Need {business_type} this week? DM “QUOTE”.\n"
+            f"2) {offer_line} — quick scheduling by message.\n"
+            f"3) Trusted {business_type} in {loc_line}. Message us.\n\n"
+            f"CAPTIONS:\n"
+            f"• {offer_line} — DM “QUOTE” for next steps.\n"
+            f"• {business_type} done right. Fast replies in DMs.\n\n"
+            f"DM SCRIPT:\n"
+            f"• Thanks for reaching out — what are you looking to get done?\n"
+            f"• What’s your timeline (ASAP or flexible)?\n"
+            f"• Send your area + a couple pics/details and I’ll reply with price + next slot.\n"
+        )
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "theme": theme,
+            "page_title": "RAR AI Studio",
+            "subtitle": "Fast marketing assets for small businesses — in minutes.",
+            "result": output_text,
+            "prefill": {
+                "business_name": business_name,
+                "business_type": business_type,
+                "offer": offer,
+                "location": location,
+                "vibe": vibe,
+            },
+        },
+    )
+
+
+# ----------------------------
+# TOOL 2: AI Sales Replies
+# - offer optional
+# - add DM text input (customer message)
+# ----------------------------
+@app.post("/sales", response_class=HTMLResponse)
+def sales(
+    request: Request,
+    business_type: str = Form(...),
+    offer: str = Form(""),
+    location: str = Form(""),
+    objection: str = Form("price"),
+    customer_message: str = Form(""),
+):
+    theme = _theme_from_request(request)
+
+    business_type = _clean_one_line(business_type)
+    offer = _clean_one_line(offer)
+    location = _clean_one_line(location)
+    objection = _clean_one_line(objection)
+    customer_message = (customer_message or "").strip()
+
+    inputs: Dict[str, Any] = {
+        "business_type": business_type,
+        "offer": offer,
+        "location": location,
+        "objection": objection,
+        "customer_message": customer_message,
+        "deliverables": [
+            "3 short replies (DM)",
+            "2 comment replies (public)",
+            "1 closing question",
+        ],
+    }
+
+    if axel_generate:
+        out = axel_generate(
+            tool="sales_replies",
+            inputs=inputs,
+            tone="human, natural, no-AI-voice",
+            audience="local customers",
+            brand="RAR AI Studio",
+        )
+        output_text = _stringify_output(out)
+    else:
+        offer_line = offer if offer else "what we offer"
+        loc_line = location if location else "your area"
+        msg = customer_message if customer_message else "(no message provided)"
+        output_text = (
+            f"AI Sales Replies — {business_type}\n\n"
+            f"Offer: {offer_line}\n"
+            f"Location: {loc_line}\n"
+            f"Objection: {objection}\n"
+            f"Customer said: {msg}\n\n"
+            f"DM REPLIES:\n"
+            f"1) Totally get it — what’s your timeline and what exactly do you need done?\n"
+            f"2) Quick question: are you looking for best price or fastest availability?\n"
+            f"3) If you send your area + details, I’ll reply with a clear price + next slot.\n\n"
+            f"COMMENT REPLIES:\n"
+            f"• Just sent you a message — I can quote fast.\n"
+            f"• Yep! We handle that. Check your DMs.\n\n"
+            f"CLOSER:\n"
+            f"• Want me to price it out right now? (area + details)\n"
+        )
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "theme": theme,
+            "page_title": "RAR AI Studio",
+            "subtitle": "Fast marketing assets for small businesses — in minutes.",
+            "result": output_text,
+            "prefill": {
+                "business_name": "",
+                "business_type": business_type,
+                "offer": offer,
+                "location": location,
+                "vibe": "confident",
+            },
+        },
+    )
+
+
+# ----------------------------
+# TOOL 3: Funnel Builder
+# - offer optional
+# - stores a funnel and returns a public link
+# Small Business = PUBLIC
+# Founders/Elite later = UNLISTED
+# ----------------------------
+@app.post("/funnel", response_class=HTMLResponse)
+def funnel(
+    request: Request,
+    business_name: str = Form(...),
+    business_type: str = Form(...),
+    offer: str = Form(""),
+    location: str = Form(""),
+):
+    theme = _theme_from_request(request)
+
+    business_name = _clean_one_line(business_name)
+    business_type = _clean_one_line(business_type)
+    offer = _clean_one_line(offer)
+    location = _clean_one_line(location)
+
+    # Small Business = public
+    visibility = "public"
+    slug = _slug(8)
+
+    headline_offer = offer if offer else f"{business_type} — fast quotes by message"
+    loc_line = location if location else "your area"
+
+    # Simple, modern, conversion-first funnel page (single file HTML)
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{business_name} — Quick Quote</title>
+<meta name="robots" content="noindex,nofollow"/>
+<style>
+  body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;}}
+  .wrap{{max-width:860px;margin:0 auto;padding:28px;}}
+  .hero{{padding:22px;border-radius:18px;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);color:white;}}
+  .hero h1{{margin:0 0 10px 0;font-size:34px;}}
+  .hero p{{margin:0;opacity:.95}}
+  .card{{margin-top:18px;padding:18px;border-radius:18px;border:1px solid rgba(0,0,0,.12);}}
+  label{{display:block;font-weight:600;margin:12px 0 6px;}}
+  input,textarea{{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(0,0,0,.18);}}
+  .btn{{margin-top:14px;display:inline-block;background:black;color:white;padding:12px 14px;border-radius:12px;text-decoration:none;font-weight:700}}
+  .tiny{{margin-top:10px;color:rgba(0,0,0,.7);font-size:13px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>{business_name}</h1>
+      <p>{headline_offer} • Serving {loc_line}</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 6px 0;">Get a fast quote (no calls)</h2>
+      <div class="tiny">Fill this out and we’ll reply with price + next availability.</div>
+
+      <form>
+        <label>Your name</label>
+        <input placeholder="Name"/>
+
+        <label>What do you need?</label>
+        <textarea rows="4" placeholder="Describe the job / product / request..."></textarea>
+
+        <label>Your location</label>
+        <input placeholder="City / Area"/>
+
+        <label>Best way to reach you</label>
+        <input placeholder="Email or Phone"/>
+
+        <a class="btn" href="#" onclick="alert('Founders upgrade will wire this to email/DM automation. For now, copy/paste this form into your site or use the text you generated in RAR.');return false;">Send request</a>
+      </form>
+    </div>
+
+    <div class="tiny">Powered by RAR AI Studio • Funnel link can be shared anywhere.</div>
+  </div>
+</body>
+</html>
+"""
+
+    with _db() as conn:
+        conn.execute(
+            """
+            INSERT INTO funnels(slug, visibility, title, business_name, business_type, offer, location, html, created_at)
+            VALUES(?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                slug,
+                visibility,
+                f"{business_name} — Funnel",
+                business_name,
+                business_type,
+                offer,
+                location,
+                html,
+                datetime.utcnow().isoformat(),
+            ),
+        )
+
+    public_link = f"/f/{slug}"
+    output_text = (
+        f"✅ Funnel created!\n\n"
+        f"Share this link anywhere:\n{public_link}\n\n"
+        f"Tip: Put it in your TikTok/IG bio, Facebook posts, or QR code.\n"
+    )
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "theme": theme,
+            "page_title": "RAR AI Studio",
+            "subtitle": "Fast marketing assets for small businesses — in minutes.",
+            "result": output_text,
+            "prefill": {
+                "business_name": business_name,
+                "business_type": business_type,
+                "offer": offer,
+                "location": location,
+                "vibe": "confident",
+            },
+        },
+    )
+
+
+# ----------------------------
+# Funnel public view
+# ----------------------------
+@app.get("/f/{slug}", response_class=HTMLResponse)
+def funnel_view(slug: str):
+    slug = (slug or "").strip()
+    with _db() as conn:
+        row = conn.execute("SELECT html FROM funnels WHERE slug=?", (slug,)).fetchone()
+    if not row:
+        return HTMLResponse("<h1>Not found</h1>", status_code=404)
+    return HTMLResponse(row["html"])
+
+from fastapi.responses import Response
+
+@app.get("/service-worker.js")
+def service_worker():
+    return Response("/* no service worker */\n", media_type="application/javascript")
+
+@app.get("/favicon.ico")
+def favicon():
+    return Response(status_code=204)

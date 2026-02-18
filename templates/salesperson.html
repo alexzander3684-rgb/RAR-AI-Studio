@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ page_title }}</title>
+
+  <link rel="stylesheet" href="/static/css/base.css"/>
+  <link rel="stylesheet" href="/static/css/theme-bold.css"/>
+  <link rel="stylesheet" href="/static/css/rar_dash.css"/>
+
+  <script defer src="/static/js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <div class="brand">
+        <div class="brand__mark">RAR</div>
+        <div class="brand__text">
+          <div class="brand__name">RAR AI Studio</div>
+          <div class="brand__tag">AI Salesperson</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="/">Studio</a>
+        <a class="nav__link" href="/pricing">Pricing</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="margin-top:16px;">
+    <div class="dash" id="salespersonPage">
+
+      <!-- SIDEBAR -->
+      <aside class="card card--glass sidebar">
+        <div class="sidebar__title">Dashboard</div>
+        <a class="sidebar__link" href="/"><span class="sidebar__dot"></span><span>Home</span></a>
+        <a class="sidebar__link is-active" href="/salesperson"><span class="sidebar__dot"></span><span>AI Salesperson</span></a>
+        <a class="sidebar__link" href="/autoresponse"><span class="sidebar__dot"></span><span>AI Auto-Response</span></a>
+        <a class="sidebar__link" href="/funnel"><span class="sidebar__dot"></span><span>Funnel</span></a>
+        <a class="sidebar__link" href="/settings"><span class="sidebar__dot"></span><span>Settings</span></a>
+
+        <div class="sidebar__meta">
+          Human-like DM closer.<br/>
+          Leads + stages + follow-ups.
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card__title">Monthly Usage</div>
+          <div class="mini"><span id="usageText">—</span></div>
+          <div class="tiny" style="opacity:.8;margin-top:6px;">
+            Counts unique leads contacted this month.
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card__title">Automation</div>
+          <div class="tiny" style="opacity:.85;margin-top:6px;">
+            Auto-send is a toggle. When ON, we queue the last AI reply and “run outbox”.
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+            <button id="autoSendToggleBtn" class="btn btn--ghost" type="button">Auto-Send: …</button>
+            <button id="queueLastReplyBtn" class="btn btn--ghost" type="button">Queue Last Reply</button>
+            <button id="runOutboxBtn" class="btn btn--primary" type="button">Run Outbox</button>
+          </div>
+
+          <div class="tiny" style="opacity:.75;margin-top:8px;">
+            Provider keys plug in later. Pipeline is ready now.
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <section class="dash-main">
+        <div class="card card--glass">
+          <div class="page-title">AI Salesperson</div>
+          <div class="page-sub">Leads + conversation + stages. Social APIs after testing.</div>
+
+          <!-- banner -->
+          <div id="statusBanner" class="tiny" style="display:none; padding:10px; border-radius:12px; margin-top:12px;"></div>
+
+          <div class="split2" style="margin-top:12px;">
+
+            <!-- LEFT -->
+            <div>
+              <div class="card card--glass">
+                <div class="card__title">Leads</div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:10px 0;">
+                  <button id="deleteLeadBtn" class="btn btn--ghost" type="button">Delete Lead</button>
+
+                  <select id="bulkStage" class="input" style="max-width:180px;">
+                    <option value="Lost">Lost</option>
+                    <option value="Won">Won</option>
+                    <option value="Estimate">Estimate</option>
+                    <option value="Engaged">Engaged</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="New">New</option>
+                  </select>
+
+                  <button id="bulkDeleteBtn" class="btn btn--ghost" type="button">Bulk Delete</button>
+                </div>
+
+                <div id="leadList"></div>
+              </div>
+
+              <div class="card card--glass" style="margin-top:12px;">
+                <div class="card__title">Conversation</div>
+                <div id="thread" style="max-height:360px;overflow:auto;"></div>
+
+                <div class="divider"></div>
+
+                <label class="label">Message</label>
+                <textarea id="chatInput" class="input" rows="3" placeholder="Paste the customer's last message OR type a reply..."></textarea>
+
+                <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                  <button id="sendBtn" class="btn btn--primary" type="button">Generate Reply</button>
+                  <button class="btn btn--ghost" type="button" data-stage="New">New</button>
+                  <button class="btn btn--ghost" type="button" data-stage="Contacted">Contacted</button>
+                  <button class="btn btn--ghost" type="button" data-stage="Engaged">Engaged</button>
+                  <button class="btn btn--ghost" type="button" data-stage="Estimate">Estimate</button>
+                  <button class="btn btn--ghost" type="button" data-stage="Won">Won</button>
+                  <button class="btn btn--ghost" type="button" data-stage="Lost">Lost</button>
+                </div>
+
+                <div style="margin-top:10px;opacity:.85;">
+                  Active: <strong id="activeLeadName">—</strong> · Stage: <strong id="activeLeadStage">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT -->
+            <div>
+              <div class="card card--glass">
+                <div class="card__title">Business Profile</div>
+
+                <label class="label">Business Name</label>
+                <input class="input" name="biz_name" placeholder="RAR Demo Co"/>
+
+                <label class="label">Business Type</label>
+                <input class="input" name="biz_type" placeholder="Drywall / Remodeling / Bakery"/>
+
+                <label class="label">Offer (optional)</label>
+                <input class="input" name="offer" placeholder="Same-day quotes / weekly specials"/>
+
+                <label class="label">Location (optional)</label>
+                <input class="input" name="location" placeholder="Muskegon, MI"/>
+
+                <label class="label">Tone</label>
+                <select class="input" name="tone">
+                  <option value="confident">Confident</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="premium">Premium</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+
+                <label class="label">Preferred CTA</label>
+                <select class="input" name="contact_method">
+                  <option value="dm">DM</option>
+                  <option value="text">Text</option>
+                  <option value="call">Call</option>
+                </select>
+
+                <div style="display:flex;gap:10px;margin-top:12px;">
+                  <button id="saveProfileBtn" class="btn btn--primary" type="button">Save</button>
+                </div>
+              </div>
+
+              <div class="card card--glass" style="margin-top:12px;">
+                <div class="card__title">Add Lead</div>
+
+                <label class="label">Name</label>
+                <input class="input" name="lead_name" placeholder="John S."/>
+
+                <label class="label">Contact</label>
+                <input class="input" name="lead_contact" placeholder="DM handle / phone / email"/>
+
+                <label class="label">Source</label>
+                <input class="input" name="lead_source" placeholder="FB DM / IG comment / website"/>
+
+                <div style="display:flex;gap:10px;margin-top:12px;">
+                  <button id="addLeadBtn" class="btn btn--primary" type="button">Add Lead</button>
+                </div>
+
+                <div class="tiny" style="margin-top:10px;">
+                  MVP: you paste inbound messages, AI drafts replies. Auto-send becomes a toggle upgrade.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>© 2026 RAR AI Studio</div>
+    </div>
+  </footer>
+</body>
+</html>

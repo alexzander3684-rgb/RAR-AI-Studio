@@ -1,0 +1,13 @@
+/* Theme: Minimal (editorial / premium simple) */
+:root{
+  --bg: #fbfbfc;
+  --panel: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: rgba(17, 24, 39, .10);
+  --shadow: 0 10px 26px rgba(17, 24, 39, .06);
+  --primary: #111827;
+  --primary2: #000000;
+}
+.btn--primary{background: #111827;}
+.btn--primary:hover{background:#000000;}

@@ -1,0 +1,11 @@
+/* Theme: Clean SaaS (default) */
+:root{
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --text: #0b1220;
+  --muted: #5a6475;
+  --border: rgba(15, 23, 42, .10);
+  --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+  --primary: #2563eb;
+  --primary2: #1d4ed8;
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ page_title }}</title>
+
+  <link rel="stylesheet" href="/static/css/base.css"/>
+  <link rel="stylesheet" href="/static/css/theme-clean.css"  {% if theme != "clean" %}disabled{% endif %} id="theme-clean"/>
+  <link rel="stylesheet" href="/static/css/theme-bold.css"   {% if theme != "bold" %}disabled{% endif %} id="theme-bold"/>
+  <link rel="stylesheet" href="/static/css/theme-minimal.css"{% if theme != "minimal" %}disabled{% endif %} id="theme-minimal"/>
+
+  <script defer src="/static/js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <div class="brand">
+        <div class="brand__mark">RAR</div>
+        <div class="brand__text">
+          <div class="brand__name">RAR AI Studio</div>
+          <div class="brand__tag">Marketing assets in minutes</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="/">Studio</a>
+        <a class="nav__link" href="/pricing?theme={{theme}}">Pricing</a>
+        <a class="nav__link nav__link--pill" href="#ads">More Services</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero__left">
+        <h1 class="hero__title">{{ subtitle }}</h1>
+        <p class="hero__sub">
+          Generate: ad copy, captions, landing copy, and DM scripts. Clean outputs that look like modern SaaS.
+        </p>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card__title">What RAR does</div>
+          <ul class="list">
+            <li>Turns your offer into posts that sell (not “AI-sounding”).</li>
+            <li>Gives you DM replies that close without phone calls.</li>
+            <li>Builds a shareable 1-page funnel link you can post anywhere.</li>
+          </ul>
+        </div>
+
+        <!-- MOVED OUTPUT BOX HERE -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card__title">Your Output</div>
+
+          {% if result %}
+            <div class="toolbar">
+              <button class="btn btn--ghost" type="button" data-copy="#resultText">Copy</button>
+              <button class="btn btn--ghost" type="button" data-download="#resultText">Download .txt</button>
+            </div>
+            <pre id="resultText" class="result">{{ result }}</pre>
+          {% else %}
+            <div class="empty">
+              Run a generation to see your output here.
+              <div class="empty__small">
+                This panel stays visible so you can generate → tweak → regenerate quickly.
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div class="hero__right">
+        <div class="card card--glass">
+          <div class="card__title">Generate a Marketing Pack</div>
+
+          <form method="post" action="/generate" class="form">
+            <div class="grid2">
+              <div>
+                <label class="label">Business Name</label>
+                <input class="input" name="business_name" required />
+              </div>
+              <div>
+                <label class="label">Business Type</label>
+                <input class="input" name="business_type" required />
+              </div>
+            </div>
+
+            <label class="label">Offer / Service (optional)</label>
+            <input class="input" name="offer" />
+
+            <div class="grid2">
+              <div>
+                <label class="label">Location (optional)</label>
+                <input class="input" name="location" />
+              </div>
+              <div>
+                <label class="label">Tone</label>
+                <select class="input" name="vibe">
+                  <option value="confident">Confident</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="premium">Premium</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn btn--primary" type="submit">Generate</button>
+          </form>
+
+          <div class="divider"></div>
+
+          <div class="grid2">
+            <form method="post" action="/sales" class="form">
+              <div class="card__title">AI Sales Replies</div>
+
+              <label class="label">Customer message (optional)</label>
+              <textarea class="input" name="customer_message" rows="4"></textarea>
+
+              <label class="label">Business Type</label>
+              <input class="input" name="business_type" required />
+
+              <label class="label">Offer (optional)</label>
+              <input class="input" name="offer" />
+
+              <label class="label">Location (optional)</label>
+              <input class="input" name="location" />
+
+              <label class="label">Objection</label>
+              <select class="input" name="objection">
+                <option value="price">Price</option>
+                <option value="trust">Trust</option>
+                <option value="timing">Timing</option>
+                <option value="quality">Quality</option>
+              </select>
+
+              <button class="btn btn--primary" type="submit">Generate Replies</button>
+            </form>
+
+            <form method="post" action="/funnel" class="form">
+              <div class="card__title">Funnel Builder</div>
+
+              <label class="label">Business Name</label>
+              <input class="input" name="business_name" required />
+
+              <label class="label">Business Type</label>
+              <input class="input" name="business_type" required />
+
+              <label class="label">Offer (optional)</label>
+              <input class="input" name="offer" />
+
+              <label class="label">Location (optional)</label>
+              <input class="input" name="location" />
+
+              <button class="btn btn--primary" type="submit">Generate Funnel Link</button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>© 2026 RAR AI Studio</div>
+    </div>
+  </footer>
+</body>
+</html>
